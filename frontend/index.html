@@ -1,42 +1,1477 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Video Streamer</title>
+    <title>Streamer</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
+            margin: 0;
             font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 20px;
+            background: #0f0f0f;
+            color: white;
+        }
+
+        /* Header */
+
+        header {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            padding: 0 30px;
+            border-bottom: 1px solid #272727;
+            background: #0f0f0f;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-right: 40px;
+        }
+
+        .search {
+            width: 450px;
+            padding: 11px 18px;
+            border-radius: 25px;
+            border: 1px solid #444;
+            background: #181818;
+            color: white;
+            font-size: 15px;
+            outline: none;
+        }
+
+        /* Main */
+
+        main {
+            padding: 30px;
+            max-width: 1400px;
+            margin: auto;
         }
 
         h1 {
-            margin-bottom: 30px;
+            font-size: 25px;
+            margin-bottom: 25px;
         }
 
-        video {
-            width: 100%;
-            max-width: 800px;
+        /* Video Grid */
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 28px 20px;
         }
+
+        .video-card {
+            cursor: pointer;
+        }
+
+        .thumbnail {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #222;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.play-button {
+    position: absolute;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 23px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+        .video-info {
+            padding: 12px 4px;
+        }
+
+        .video-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        .video-status {
+            color: #aaa;
+            font-size: 13px;
+        }
+
+        .ready {
+            color: #4caf50;
+        }
+
+        .processing {
+            color: #ff9800;
+        }
+
+        .failed {
+            color: #f44336;
+        }
+
+        /* Empty state */
+
+        .empty {
+            text-align: center;
+            color: #aaa;
+            padding: 80px 20px;
+            font-size: 18px;
+        }
+
+        /* Player */
+
+        .player-container {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+
+        .player-box {
+            width: 90%;
+            max-width: 1100px;
+        }
+
+        #videoPlayer {
+            width: 100%;
+            max-height: 75vh;
+            background: black;
+        }
+
+        .close-button {
+    display: block;
+    margin-left: auto;
+    margin-bottom: 10px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-button:hover {
+    color: #aaa;
+}
+
+        .player-title {
+            margin-top: 12px;
+            font-size: 20px;
+        }
+
+        @media (max-width: 700px) {
+            header {
+                padding: 0 15px;
+            }
+
+            .search {
+                width: 200px;
+            }
+
+            main {
+                padding: 20px 15px;
+            }
+
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .player-wrapper {
+    position: relative;
+}
+
+.quality-control {
+    position: absolute;
+    right: 20px;
+    bottom: 55px;
+    z-index: 5;
+}
+
+#qualityButton {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#qualityButton:hover {
+    background: rgba(40, 40, 40, 0.9);
+}
+
+.quality-menu {
+    display: none;
+    position: absolute;
+    bottom: 42px;
+    right: 0;
+    background: rgba(20, 20, 20, 0.95);
+    border-radius: 6px;
+    min-width: 130px;
+    overflow: hidden;
+}
+
+.quality-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    border: none;
+    background: transparent;
+    color: white;
+    text-align: left;
+    cursor: pointer;
+}
+
+.quality-menu button:hover {
+    background: #333;
+}
+
+.quality-menu button.active {
+    background: #444;
+}
+.upload-button {
+    margin-left: auto;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 20px;
+    background: white;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.upload-button:hover {
+    background: #ddd;
+}
+
+
+/* Upload Modal */
+
+.upload-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.upload-box {
+    width: 100%;
+    max-width: 550px;
+    background: #181818;
+    border-radius: 12px;
+    padding: 30px;
+    position: relative;
+}
+
+.upload-box h2 {
+    margin-top: 0;
+    margin-bottom: 25px;
+}
+
+.upload-close {
+    position: absolute;
+    right: 20px;
+    top: 18px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 25px;
+    cursor: pointer;
+}
+
+.drop-area {
+    border: 2px dashed #555;
+    border-radius: 12px;
+    padding: 45px 20px;
+    text-align: center;
+    transition: 0.2s;
+}
+
+.drop-area.dragover {
+    border-color: white;
+    background: #222;
+}
+
+.upload-icon {
+    font-size: 40px;
+    margin-bottom: 15px;
+}
+
+.drop-area p {
+    margin: 8px 0;
+    color: #ccc;
+}
+
+.drop-area span {
+    display: block;
+    color: #777;
+    margin: 10px 0;
+}
+
+.choose-file {
+    display: inline-block;
+    padding: 10px 18px;
+    border-radius: 5px;
+    background: #333;
+    color: white;
+    cursor: pointer;
+}
+
+.choose-file:hover {
+    background: #444;
+}
+
+.selected-file {
+    margin-top: 20px !important;
+    font-size: 14px;
+    word-break: break-all;
+}
+
+.upload-progress-container {
+    display: none;
+    margin-top: 20px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #333;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress {
+    width: 0%;
+    height: 100%;
+    background: white;
+    transition: width 0.2s;
+}
+
+.progress-text {
+    text-align: center;
+    margin-top: 8px;
+    color: #aaa;
+    font-size: 13px;
+}
+
+.start-upload {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    background: white;
+    color: black;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.start-upload:hover {
+    background: #ddd;
+}
+
+.start-upload:disabled {
+    background: #555;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.upload-status {
+    text-align: center;
+    margin-top: 15px;
+    color: #aaa;
+}
     </style>
 </head>
 
 <body>
 
-    <h1>Video Streamer</h1>
+<header>
 
-    <video controls>
-        <source
-            src="http://127.0.0.1:8000/videos/1/stream"
-            type="video/mp4"
+    <div class="logo">
+        🎬 Streamer
+    </div>
+
+    <input
+        id="searchInput"
+        class="search"
+        type="text"
+        placeholder="Search videos..."
+    >
+    <button id="uploadButton" class="upload-button">
+    Upload
+</button>
+
+</header>
+
+
+<main>
+
+    <h1>Your Videos</h1>
+
+    <div id="videoGrid" class="video-grid"></div>
+
+    <div id="emptyMessage" class="empty">
+        Loading videos...
+    </div>
+
+</main>
+
+
+<!-- Video Player -->
+
+<div id="playerContainer" class="player-container">
+
+    <div class="player-box">
+
+        <button
+    id="closePlayerButton"
+    class="close-button"
+    type="button"
+>
+    ✕
+</button>
+
+        <div class="player-wrapper">
+
+    <video
+        id="videoPlayer"
+        controls
+    ></video>
+
+    <div class="quality-control">
+        <button id="qualityButton">⚙ Quality</button>
+
+        <div id="qualityMenu" class="quality-menu">
+        </div>
+    </div>
+
+</div>
+
+        <div
+            id="playerTitle"
+            class="player-title"
+        ></div>
+
+    </div>
+
+</div>
+
+<div id="uploadModal" class="upload-modal">
+
+    <div class="upload-box">
+
+        <button
+            id="closeUploadButton"
+            class="upload-close"
+            type="button"
+        >
+            ✕
+        </button>
+
+        <h2>Upload Video</h2>
+
+        <div
+            id="dropArea"
+            class="drop-area"
         >
 
-        Your browser does not support video playback.
-    </video>
+            <div class="upload-icon">
+                ⬆
+            </div>
+
+            <p>
+                Drag & drop your video here
+            </p>
+
+            <span>
+                or
+            </span>
+
+            <label
+                for="videoFile"
+                class="choose-file"
+            >
+                Choose Video
+            </label>
+
+            <input
+                id="videoFile"
+                type="file"
+                accept="video/*"
+                hidden
+            >
+
+            <p
+                id="selectedFile"
+                class="selected-file"
+            >
+                No file selected
+            </p>
+
+        </div>
+
+        <div
+            id="uploadProgressContainer"
+            class="upload-progress-container"
+        >
+
+            <div class="progress-bar">
+                <div
+                    id="uploadProgress"
+                    class="progress"
+                ></div>
+            </div>
+
+            <div
+                id="uploadProgressText"
+                class="progress-text"
+            >
+                0%
+            </div>
+
+        </div>
+
+        <button
+            id="startUploadButton"
+            class="start-upload"
+            type="button"
+        >
+            Upload Video
+        </button>
+
+        <p
+            id="uploadStatus"
+            class="upload-status"
+        ></p>
+
+    </div>
+
+</div>
+<script>
+
+let videos = [];
+let hls = null;
+
+
+/* =========================
+   Load Videos
+========================= */
+
+async function loadVideos() {
+
+    try {
+
+        const response = await fetch("/videos");
+
+        if (!response.ok) {
+            throw new Error("Failed to load videos");
+        }
+
+        videos = await response.json();
+
+        displayVideos(videos);
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("emptyMessage").innerText =
+            "Unable to load videos.";
+
+    }
+
+}
+
+
+/* =========================
+   Display Videos
+========================= */
+
+function displayVideos(videoList) {
+
+    const grid = document.getElementById("videoGrid");
+    const empty = document.getElementById("emptyMessage");
+
+    grid.innerHTML = "";
+
+    if (videoList.length === 0) {
+
+        empty.style.display = "block";
+        empty.innerText = "No videos uploaded yet.";
+
+        return;
+    }
+
+    empty.style.display = "none";
+
+
+    videoList.forEach(video => {
+
+        const card = document.createElement("div");
+
+        card.className = "video-card";
+
+
+        let statusClass = "";
+
+        if (video.status === "ready") {
+            statusClass = "ready";
+        }
+        else if (video.status === "processing") {
+            statusClass = "processing";
+        }
+        else if (video.status === "failed") {
+            statusClass = "failed";
+        }
+
+
+        card.innerHTML = `
+
+            <div class="thumbnail">
+
+    <img
+        src="/thumbnails/video_${video.id}.jpg"
+        alt="${video.filename || "Video"}"
+    >
+
+    <div class="play-button">
+        ▶
+    </div>
+
+</div>
+
+            <div class="video-info">
+
+                <div class="video-title">
+                    ${video.filename || "Untitled Video"}
+                </div>
+
+                <div class="video-status ${statusClass}">
+                    ${video.status || "unknown"}
+                </div>
+
+            </div>
+
+        `;
+
+
+        card.addEventListener("click", () => {
+
+            if (video.status === "ready") {
+
+                openPlayer(video);
+
+            } else {
+
+                alert(
+                    "This video is still processing."
+                );
+
+            }
+
+        });
+
+
+        grid.appendChild(card);
+
+    });
+
+}
+
+
+/* =========================
+   Open Player
+========================= */
+
+function openPlayer(video) {
+
+    const container =
+        document.getElementById("playerContainer");
+
+    const player =
+        document.getElementById("videoPlayer");
+
+    const title =
+        document.getElementById("playerTitle");
+
+    const qualityMenu =
+        document.getElementById("qualityMenu");
+
+
+    title.innerText =
+        video.filename || "Video";
+
+
+    container.style.display = "flex";
+
+
+    const hlsUrl =
+        `/hls/video_${video.id}/master.m3u8`;
+
+
+    /* Destroy previous HLS instance */
+
+    if (hls) {
+
+        hls.destroy();
+
+        hls = null;
+
+    }
+
+
+    qualityMenu.innerHTML = "";
+
+
+    /* =========================
+       HLS.js
+    ========================= */
+
+    if (Hls.isSupported()) {
+
+        hls = new Hls({
+            capLevelToPlayerSize: true,
+            startLevel: -1
+        });
+
+
+        hls.loadSource(hlsUrl);
+
+        hls.attachMedia(player);
+
+
+        /*
+         * Wait until HLS levels are loaded.
+         */
+
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+
+            createQualityMenu();
+
+        });
+
+
+        /*
+         * Automatic quality switching
+         *
+         * -1 = Auto
+         */
+
+        hls.currentLevel = -1;
+
+    }
+
+
+    /* =========================
+       Safari / Native HLS
+    ========================= */
+
+    else if (
+        player.canPlayType(
+            "application/vnd.apple.mpegurl"
+        )
+    ) {
+
+        player.src = hlsUrl;
+
+        /*
+         * Native HLS browsers manage
+         * adaptive quality themselves.
+         */
+
+    }
+
+    else {
+
+        alert(
+            "Your browser does not support HLS."
+        );
+
+    }
+
+}
+function createQualityMenu() {
+
+    const qualityMenu =
+        document.getElementById("qualityMenu");
+
+    qualityMenu.innerHTML = "";
+
+
+    /*
+     * AUTO option
+     */
+
+    const autoButton =
+        document.createElement("button");
+
+    autoButton.innerText = "Auto";
+
+    autoButton.classList.add("active");
+
+
+    autoButton.onclick = function () {
+
+        hls.currentLevel = -1;
+
+        updateQualityButtons(-1);
+
+        closeQualityMenu();
+
+    };
+
+
+    qualityMenu.appendChild(autoButton);
+
+
+    /*
+     * Get available HLS levels
+     */
+
+    hls.levels.forEach((level, index) => {
+
+        const button =
+            document.createElement("button");
+
+        button.innerText =
+            level.height + "p";
+
+
+        button.onclick = function () {
+
+            /*
+             * Select this resolution manually
+             */
+
+            hls.currentLevel = index;
+
+            updateQualityButtons(index);
+
+            closeQualityMenu();
+
+        };
+
+
+        qualityMenu.appendChild(button);
+
+    });
+
+}
+function updateQualityButtons(selectedLevel) {
+
+    const buttons =
+        document.querySelectorAll(
+            "#qualityMenu button"
+        );
+
+
+    buttons.forEach((button, index) => {
+
+        button.classList.remove("active");
+
+
+        if (
+            selectedLevel === -1 &&
+            index === 0
+        ) {
+
+            button.classList.add("active");
+
+        }
+
+
+        if (
+            selectedLevel !== -1 &&
+            index === selectedLevel + 1
+        ) {
+
+            button.classList.add("active");
+
+        }
+
+    });
+
+
+    const qualityButton =
+        document.getElementById("qualityButton");
+
+
+    if (selectedLevel === -1) {
+
+        qualityButton.innerText = "⚙ Auto";
+
+    } else {
+
+        qualityButton.innerText =
+            "⚙ " +
+            hls.levels[selectedLevel].height +
+            "p";
+
+    }
+
+}
+document
+    .getElementById("qualityButton")
+    .addEventListener("click", function (event) {
+
+        event.stopPropagation();
+
+        const menu =
+            document.getElementById("qualityMenu");
+
+        if (menu.style.display === "block") {
+
+            menu.style.display = "none";
+
+        } else {
+
+            menu.style.display = "block";
+
+        }
+
+    });
+
+
+document.addEventListener("click", function (event) {
+
+    const menu =
+        document.getElementById("qualityMenu");
+
+    const button =
+        document.getElementById("qualityButton");
+
+
+    if (
+        !menu.contains(event.target) &&
+        event.target !== button
+    ) {
+
+        closeQualityMenu();
+
+    }
+
+});
+
+
+function closeQualityMenu() {
+
+    document.getElementById(
+        "qualityMenu"
+    ).style.display = "none";
+
+}
+
+
+/* =========================
+   Close Player
+========================= */
+
+function closePlayer() {
+
+    const container =
+        document.getElementById("playerContainer");
+
+    const player =
+        document.getElementById("videoPlayer");
+
+
+    /* Stop playback */
+
+    player.pause();
+
+
+    /* Destroy HLS */
+
+    if (hls) {
+
+        hls.destroy();
+
+        hls = null;
+
+    }
+
+
+    /* Clear video source */
+
+    player.removeAttribute("src");
+
+    player.load();
+
+
+    /* Hide player */
+
+    container.style.display = "none";
+
+
+    /* Reset quality menu */
+
+    document.getElementById(
+        "qualityMenu"
+    ).innerHTML = "";
+
+}
+
+
+/* =========================
+   Search
+========================= */
+
+document
+    .getElementById("searchInput")
+    .addEventListener("input", function () {
+
+        const searchText =
+            this.value.toLowerCase();
+
+
+        const filtered =
+            videos.filter(video =>
+
+                (video.filename || "")
+                    .toLowerCase()
+                    .includes(searchText)
+
+            );
+
+
+        displayVideos(filtered);
+
+    });
+
+
+
+document
+    .getElementById("closePlayerButton")
+    .addEventListener("click", function (event) {
+
+        event.stopPropagation();
+
+        closePlayer();
+
+    });
+
+/* =========================
+   Upload
+========================= */
+
+const uploadButton =
+    document.getElementById("uploadButton");
+
+const uploadModal =
+    document.getElementById("uploadModal");
+
+const closeUploadButton =
+    document.getElementById("closeUploadButton");
+
+const videoFile =
+    document.getElementById("videoFile");
+
+const selectedFile =
+    document.getElementById("selectedFile");
+
+const startUploadButton =
+    document.getElementById("startUploadButton");
+
+const dropArea =
+    document.getElementById("dropArea");
+
+const uploadProgressContainer =
+    document.getElementById("uploadProgressContainer");
+
+const uploadProgress =
+    document.getElementById("uploadProgress");
+
+const uploadProgressText =
+    document.getElementById("uploadProgressText");
+
+const uploadStatus =
+    document.getElementById("uploadStatus");
+
+let selectedVideoFile = null;
+
+
+/* Open upload modal */
+
+uploadButton.addEventListener(
+    "click",
+    function () {
+
+        uploadModal.style.display = "flex";
+
+    }
+);
+
+
+/* Close upload modal */
+
+closeUploadButton.addEventListener(
+    "click",
+    function () {
+
+        uploadModal.style.display = "none";
+
+    }
+);
+
+
+/* Close when clicking outside */
+
+uploadModal.addEventListener(
+    "click",
+    function (event) {
+
+        if (event.target === uploadModal) {
+
+            uploadModal.style.display = "none";
+
+        }
+
+    }
+);
+
+
+/* =========================
+   File Selection
+========================= */
+
+videoFile.addEventListener(
+    "change",
+    function () {
+
+        if (this.files.length === 0) {
+            return;
+        }
+
+        selectVideoFile(this.files[0]);
+
+    }
+);
+
+
+function selectVideoFile(file) {
+
+    if (!file.type.startsWith("video/")) {
+
+        alert("Please select a video file.");
+
+        return;
+
+    }
+
+    selectedVideoFile = file;
+
+    selectedFile.innerText =
+        file.name +
+        " (" +
+        formatFileSize(file.size) +
+        ")";
+
+    uploadStatus.innerText = "";
+
+    startUploadButton.disabled = false;
+
+}
+
+
+function formatFileSize(bytes) {
+
+    if (bytes < 1024 * 1024) {
+
+        return (
+            (bytes / 1024).toFixed(1) +
+            " KB"
+        );
+
+    }
+
+    return (
+        (bytes / (1024 * 1024)).toFixed(1) +
+        " MB"
+    );
+
+}
+
+
+/* =========================
+   Drag & Drop
+========================= */
+
+dropArea.addEventListener(
+    "dragover",
+    function (event) {
+
+        event.preventDefault();
+
+        dropArea.classList.add("dragover");
+
+    }
+);
+
+
+dropArea.addEventListener(
+    "dragleave",
+    function () {
+
+        dropArea.classList.remove("dragover");
+
+    }
+);
+
+
+dropArea.addEventListener(
+    "drop",
+    function (event) {
+
+        event.preventDefault();
+
+        dropArea.classList.remove("dragover");
+
+        const files =
+            event.dataTransfer.files;
+
+        if (files.length > 0) {
+
+            selectVideoFile(files[0]);
+
+        }
+
+    }
+);
+
+
+/* =========================
+   Upload
+========================= */
+
+startUploadButton.addEventListener(
+    "click",
+    function () {
+
+        if (!selectedVideoFile) {
+
+            alert("Please select a video first.");
+
+            return;
+
+        }
+
+        uploadVideo(selectedVideoFile);
+
+    }
+);
+
+
+function uploadVideo(file) {
+
+    const formData =
+        new FormData();
+
+    formData.append(
+        "file",
+        file
+    );
+
+
+    const xhr =
+        new XMLHttpRequest();
+
+
+    xhr.open(
+        "POST",
+        "/videos"
+    );
+
+
+    /* Upload progress */
+
+    xhr.upload.addEventListener(
+        "progress",
+        function (event) {
+
+            if (event.lengthComputable) {
+
+                const percent =
+                    Math.round(
+                        (event.loaded / event.total) * 100
+                    );
+
+                uploadProgress.style.width =
+                    percent + "%";
+
+                uploadProgressText.innerText =
+                    percent + "%";
+
+            }
+
+        }
+    );
+
+
+    /* Upload completed */
+
+    xhr.addEventListener(
+        "load",
+        async function () {
+
+            if (
+                xhr.status >= 200 &&
+                xhr.status < 300
+            ) {
+
+                uploadStatus.innerText =
+                    "Upload successful! Processing video...";
+
+                uploadProgress.style.width =
+                    "100%";
+
+                uploadProgressText.innerText =
+                    "100%";
+
+
+                /*
+                 * Reload video list after upload.
+                 */
+
+                await loadVideos();
+
+
+                /*
+                 * Close modal after a short delay.
+                 */
+
+                setTimeout(
+                    function () {
+
+                        uploadModal.style.display =
+                            "none";
+
+                        resetUploadForm();
+
+                    },
+                    1500
+                );
+
+            } else {
+
+    console.error("Upload failed");
+    console.error("Status:", xhr.status);
+    console.error("Response:", xhr.responseText);
+
+    uploadStatus.innerText =
+        "Upload failed (" +
+        xhr.status +
+        ")";
+
+}
+
+            startUploadButton.disabled = false;
+
+        }
+    );
+
+
+    /* Upload error */
+
+    xhr.addEventListener(
+        "error",
+        function () {
+
+            uploadStatus.innerText =
+                "Upload failed. Please try again.";
+
+            startUploadButton.disabled =
+                false;
+
+        }
+    );
+
+
+    startUploadButton.disabled = true;
+
+    uploadProgressContainer.style.display =
+        "block";
+
+    uploadStatus.innerText =
+        "Uploading...";
+
+
+    xhr.send(formData);
+
+}
+
+
+/* =========================
+   Reset Upload Form
+========================= */
+
+function resetUploadForm() {
+
+    selectedVideoFile = null;
+
+    videoFile.value = "";
+
+    selectedFile.innerText =
+        "No file selected";
+
+    uploadProgress.style.width =
+        "0%";
+
+    uploadProgressText.innerText =
+        "0%";
+
+    uploadProgressContainer.style.display =
+        "none";
+
+    uploadStatus.innerText = "";
+
+    startUploadButton.disabled = false;
+
+}
+
+/* =========================
+   Start
+========================= */
+loadVideos();
+
+</script>
 
 </body>
+
 </html>

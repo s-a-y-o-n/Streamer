@@ -8,6 +8,9 @@ from fastapi.responses import StreamingResponse
 import re
 from .database import Base, engine, AsyncSessionLocal
 from .models import Video
+from .tasks import process_video
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 
 UPLOAD_DIR = Path("storage/uploads")
@@ -30,13 +33,26 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+app.mount(
+    "/hls",
+    StaticFiles(directory="storage/hls"),
+    name="hls"
+)
+app.mount(
+    "/thumbnails",
+    StaticFiles(directory="storage/thumbnails"),
+    name="thumbnails"
+)
+app.mount(
+    "/frontend",
+    StaticFiles(directory="frontend"),
+    name="frontend"
+)
 
 
 @app.get("/")
-async def root():
-    return {
-        "message": "Video Streamer API is running"
-    }
+async def home():
+    return FileResponse("frontend/index.html")
 
 
 @app.get("/health")
@@ -86,6 +102,7 @@ async def upload_video(file: UploadFile = File(...)):
 
         await session.commit()
         await session.refresh(video)
+        process_video.delay(video.id)
 
     # 5. Return database information
     return {
